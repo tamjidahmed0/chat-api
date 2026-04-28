@@ -46,7 +46,6 @@ export class RoomsService {
     }
 
 
-
     async getRoom(id: string) {
         const [room] = await this.db.select().from(schema.rooms).where(eq(schema.rooms.id, id));
         if (!room) {
@@ -76,7 +75,6 @@ export class RoomsService {
         // Notify all WebSocket clients via Redis pub/sub
         await this.redis.publish('chat:events', JSON.stringify({ type: 'room:deleted', roomId: id }));
     }
-
 
 
     async getMessages(roomId: string, limit: number, before?: string) {
@@ -123,6 +121,49 @@ export class RoomsService {
                 hasMore,
                 nextCursor: hasMore ? page[page.length - 1]?.id ?? null : null,
             },
+        };
+    }
+
+
+    async createMessage(roomId: string, username: string, content: string) {
+        const room = await this.getRoomRaw(roomId);
+        if (!room) {
+            throw new NotFoundException({ code: 'ROOM_NOT_FOUND', message: `Room with id ${roomId} does not exist` });
+        }
+
+        const trimmed = content.trim();
+        if (!trimmed) {
+            throw new Error('EMPTY_MESSAGE');
+        }
+
+        const id = `msg_${nanoid(6)}`;
+        const [message] = await this.db
+            .insert(schema.messages)
+            .values({ id, roomId, username, content: trimmed })
+            .returning();
+
+
+        // Publish via Redis — gateway picks this up and broadcasts
+        await this.redis.publish(
+            'chat:events',
+            JSON.stringify({
+                type: 'message:new',
+                roomId: id,
+                payload: {
+                    id: message.id,
+                    username: message.username,
+                    content: message.content,
+                    createdAt: message.createdAt,
+                },
+            }),
+        );
+
+
+        return {
+            success: true,
+            data: {
+                message
+            }
         };
     }
 
