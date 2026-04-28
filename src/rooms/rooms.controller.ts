@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { RoomsService } from './rooms.service';
 import { CreateRoomDto } from './dto/rooms.dto';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
@@ -16,6 +16,12 @@ export class RoomsController {
     @UseGuards(SessionGuard)
     async createRoom(@Body() dto: CreateRoomDto, @CurrentUser() user: User) {
         return this.roomsService.createRoom(dto.name, user.username);
+    }
+
+
+    @Get(':id')
+    async getRoom(@Param('id') id: string) {
+        return this.roomsService.getRoom(id);
     }
 
 
