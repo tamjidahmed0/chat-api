@@ -3,7 +3,7 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DB } from 'src/db/database.module';
 import * as schema from '../db/schema';
 import { nanoid } from 'nanoid';
-import { eq } from 'drizzle-orm';
+import { eq, desc, and, lt, SQL } from 'drizzle-orm';
 import { REDIS_CLIENT } from 'src/redis/redis.module';
 import Redis from 'ioredis';
 
@@ -75,6 +75,55 @@ export class RoomsService {
 
         // Notify all WebSocket clients via Redis pub/sub
         await this.redis.publish('chat:events', JSON.stringify({ type: 'room:deleted', roomId: id }));
+    }
+
+
+
+    async getMessages(roomId: string, limit: number, before?: string) {
+        const room = await this.getRoomRaw(roomId);
+        if (!room) {
+            throw new NotFoundException({
+                code: 'ROOM_NOT_FOUND',
+                message: `Room with id ${roomId} does not exist`,
+            });
+        }
+
+        const safeLimit = Math.min(limit, 100);
+
+        let whereCondition: SQL<unknown> = eq(schema.messages.roomId, roomId)!;
+
+        if (before) {
+            const [cursor] = await this.db
+                .select()
+                .from(schema.messages)
+                .where(eq(schema.messages.id, before));
+
+            if (cursor) {
+                whereCondition = and(
+                    eq(schema.messages.roomId, roomId),
+                    lt(schema.messages.createdAt, cursor.createdAt)
+                ) as SQL<unknown>;
+            }
+        }
+
+        const rows = await this.db
+            .select()
+            .from(schema.messages)
+            .where(whereCondition)
+            .orderBy(desc(schema.messages.createdAt))
+            .limit(safeLimit + 1);
+
+        const hasMore = rows.length > safeLimit;
+        const page = rows.slice(0, safeLimit);
+
+        return {
+            success: true,
+            data: {
+                messages: page.reverse(),
+                hasMore,
+                nextCursor: hasMore ? page[page.length - 1]?.id ?? null : null,
+            },
+        };
     }
 
 
