@@ -1,14 +1,17 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Inject, Param, Post, UseGuards } from '@nestjs/common';
 import { RoomsService } from './rooms.service';
 import { CreateRoomDto } from './dto/rooms.dto';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import type { User } from 'src/db/schema';
 import { SessionGuard } from 'src/auth/auth.guard';
 
+
+
+
 @Controller('rooms')
 export class RoomsController {
     constructor(
-        private readonly roomsService: RoomsService,
+        private readonly roomsService: RoomsService
     ) { }
 
 
@@ -22,6 +25,20 @@ export class RoomsController {
     @Get(':id')
     async getRoom(@Param('id') id: string) {
         return this.roomsService.getRoom(id);
+    }
+
+
+    @Delete(':id')
+    @UseGuards(SessionGuard)
+    async deleteRoom(@Param('id') id: string, @CurrentUser() user: User) {
+        await this.roomsService.deleteRoom(id, user.username);
+
+        return { 
+            success: true,
+            data:{
+                deleted:true
+            }
+        };
     }
 
 

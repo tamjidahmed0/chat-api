@@ -1,4 +1,4 @@
-import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DB } from 'src/db/database.module';
 import * as schema from '../db/schema';
@@ -52,19 +52,39 @@ export class RoomsService {
         if (!room) {
             throw new NotFoundException({ code: 'ROOM_NOT_FOUND', message: `Room with id ${id} does not exist` });
         }
-        return { 
+        return {
             success: true,
-            data:{
-                ...room, activeUsers: await this.getActiveUserCount(id) 
+            data: {
+                ...room, activeUsers: await this.getActiveUserCount(id)
             }
         };
+    }
+
+
+    async deleteRoom(id: string, requestingUsername: string): Promise<void> {
+        const room = await this.getRoomRaw(id);
+        if (!room) {
+            throw new NotFoundException({ code: 'ROOM_NOT_FOUND', message: `Room with id ${id} does not exist` });
+        }
+        if (room.createdBy !== requestingUsername) {
+            throw new ForbiddenException({ code: 'FORBIDDEN', message: 'Only the room creator can delete this room' });
+        }
+        await this.db.delete(schema.rooms).where(eq(schema.rooms.id, id));
+        // Cleanup Redis active user set
+        await this.redis.del(this.activeUsersKey(id));
+
+        // Notify all WebSocket clients via Redis pub/sub
+        await this.redis.publish('chat:events', JSON.stringify({ type: 'room:deleted', roomId: id }));
     }
 
 
 
 
 
-    
+    async getRoomRaw(id: string) {
+        const [room] = await this.db.select().from(schema.rooms).where(eq(schema.rooms.id, id));
+        return room ?? null;
+    }
 
     async getActiveUserCount(roomId: string): Promise<number> {
         return this.redis.scard(this.activeUsersKey(roomId));
