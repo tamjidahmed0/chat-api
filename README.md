@@ -4,6 +4,10 @@ Real-time group chat service built with NestJS · PostgreSQL · Drizzle ORM · R
 
 ---
 
+## 🚀 Api Link
+**Base URL:** https://chat.api.tamjidahmed.com/api/v1
+**WebSocket:** wss://chat.api.tamjidahmed.com/chat
+
 ## Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/) & Docker Compose
