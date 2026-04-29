@@ -75,6 +75,10 @@ export class AuthService {
 
 
 
-
+    async validateSession(token: string): Promise<schema.User | null> {
+        const raw = await this.redis.get(`session:${token}`);
+        if (!raw) return null;
+        return JSON.parse(raw);
+    }
 
 }

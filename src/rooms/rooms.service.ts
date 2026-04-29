@@ -148,7 +148,7 @@ export class RoomsService {
             'chat:events',
             JSON.stringify({
                 type: 'message:new',
-                roomId: id,
+                roomId: roomId,
                 payload: {
                     id: message.id,
                     username: message.username,
@@ -157,7 +157,6 @@ export class RoomsService {
                 },
             }),
         );
-
 
         return {
             success: true,
@@ -168,6 +167,20 @@ export class RoomsService {
     }
 
 
+
+
+    // Active user management
+    async addActiveUser(roomId: string, username: string) {
+        await this.redis.sadd(this.activeUsersKey(roomId), username);
+    }
+
+    async removeActiveUser(roomId: string, username: string) {
+        await this.redis.srem(this.activeUsersKey(roomId), username);
+    }
+
+    async getActiveUsers(roomId: string): Promise<string[]> {
+        return this.redis.smembers(this.activeUsersKey(roomId));
+    }
 
 
 
