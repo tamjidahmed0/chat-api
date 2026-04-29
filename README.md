@@ -105,7 +105,7 @@ Auth header: `Authorization: Bearer <sessionToken>` (not required for `/login`)
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/login` | Get or create a user and return a session token |
+| POST | `auth/login` | Get or create a user and return a session token |
 | GET | `/rooms` | List all rooms |
 | POST | `/rooms` | Create a new room |
 | GET | `/rooms/:id` | Get room details |
