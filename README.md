@@ -25,7 +25,7 @@ cp .env.example .env
 
 ### 3. Run
 ```bash
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 This single command will:
@@ -35,7 +35,7 @@ This single command will:
 
 ### 4. Verify
 ```bash
-docker-compose logs -f app
+docker compose logs -f app
 ```
 
 
