@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM node:alpine AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
@@ -6,7 +6,7 @@ COPY . .
 RUN npm run build
 
 
-FROM node:20-alpine AS migrate
+FROM node:alpine AS migrate
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
@@ -15,7 +15,7 @@ COPY --from=builder /app/src/db ./src/db
 COPY drizzle.config.ts ./
 
 
-FROM node:20-alpine AS production
+FROM node:alpine AS production
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev
